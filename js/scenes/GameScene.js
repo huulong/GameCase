@@ -302,7 +302,24 @@ class GameScene extends Phaser.Scene {
     spawnBoss() {
         this.bossSpawned = true;
         
-        // Thêm hiệu ứng thông báo
+        // Lưu trữ volume gốc của nhạc nền
+        const originalBgVolume = this.bgMusic.volume;
+        
+        // Giảm volume nhạc nền
+        this.tweens.add({
+            targets: this.bgMusic,
+            volume: 0.1,  // Giảm xuống 10%
+            duration: 1000,
+            ease: 'Linear'
+        });
+        
+        // Phát âm thanh cảnh báo Boss Vi với âm lượng lớn
+        this.sound.play('bossWarning', { volume: 5 });
+        
+        // Tạo hiệu ứng rung màn hình
+        this.cameras.main.shake(1000, 0.005);
+        
+        // Thêm hiệu ứng thông báo với scale animation
         const warningText = this.add.text(
             this.game.config.width / 2,
             this.game.config.height / 2,
@@ -312,20 +329,58 @@ class GameScene extends Phaser.Scene {
                 fill: '#ff0000',
                 align: 'center',
                 fontStyle: 'bold',
-                stroke: '#ffffff',     
-                strokeThickness: 4      
+                stroke: '#ffffff',
+                strokeThickness: 4
             }
         ).setOrigin(0.5);
 
-       
+        // Hiệu ứng phóng to thu nhỏ cho text
         this.tweens.add({
             targets: warningText,
-            alpha: { from: 1, to: 0 },
+            scaleX: { from: 0.5, to: 1.2 },
+            scaleY: { from: 0.5, to: 1.2 },
+            alpha: { from: 0, to: 1 },
+            duration: 500,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Bounce.easeOut',
+            onComplete: () => {
+                // Flash màn hình
+                this.cameras.main.flash(500, 255, 0, 0);
+                
+                // Phát âm thanh cảnh báo lần nữa khi boss thực sự xuất hiện
+                this.sound.play('bossWarning', { volume: 5 });
+                
+                warningText.destroy();
+                this.boss.activate();
+                
+                // Đợi hết âm thanh cảnh báo (khoảng 3 giây) rồi khôi phục volume nhạc nền
+                this.time.delayedCall(3000, () => {
+                    this.tweens.add({
+                        targets: this.bgMusic,
+                        volume: originalBgVolume,
+                        duration: 1000,
+                        ease: 'Linear'
+                    });
+                });
+            }
+        });
+        
+        // Thêm hiệu ứng nền đỏ nhấp nháy
+        const flashOverlay = this.add.rectangle(
+            0, 0,
+            this.game.config.width,
+            this.game.config.height,
+            0xff0000, 0.2
+        ).setOrigin(0);
+        
+        this.tweens.add({
+            targets: flashOverlay,
+            alpha: { from: 0.2, to: 0 },
             duration: 500,
             repeat: 3,
             onComplete: () => {
-                warningText.destroy();
-                this.boss.activate();
+                flashOverlay.destroy();
             }
         });
     }

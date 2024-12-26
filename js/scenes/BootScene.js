@@ -37,5 +37,8 @@ class BootScene extends Phaser.Scene {
             'assets/images/Red Effect Bullet Impact Explosion 32x32.png',
             { frameWidth: 32, frameHeight: 32 }
         );
+
+        // Load warning sound
+        this.load.audio('bossWarning', 'assets/sounds/BossVi.mp3');
     }
 }
