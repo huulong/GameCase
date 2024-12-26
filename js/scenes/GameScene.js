@@ -313,7 +313,7 @@ class GameScene extends Phaser.Scene {
             ease: 'Linear'
         });
         
-        // Phát âm thanh cảnh báo Boss Vi với âm lượng lớn
+        // Ph��t âm thanh cảnh báo Boss Vi với âm lượng lớn
         this.sound.play('bossWarning', { volume: 5 });
         
         // Tạo hiệu ứng rung màn hình
@@ -589,6 +589,95 @@ class GameScene extends Phaser.Scene {
                     });
                 });
             }
+        });
+    }
+
+    showThinhEffect() {
+        // Đánh dấu player bị stun
+        this.player.isStunned = true;
+        this.player.originalSpeed = this.player.body.velocity.x;
+        this.player.setVelocityX(this.player.body.velocity.x * 0.3); // Giảm 70% tốc độ
+
+        // Tạo popup
+        const popupContainer = this.add.container(this.game.config.width / 2, this.game.config.height / 2);
+        
+        // Background cho popup
+        const bg = this.add.rectangle(0, 0, 500, 100, 0xff69b4, 0.9)
+            .setStrokeStyle(2, 0xffc0cb);
+        
+        // Text thông báo
+        const text = this.add.text(0, 0, 
+            'Bạn đã trúng thính của Boss Vi!\nMất thêm 10 giây lơ mơ...', {
+            fontSize: '20px',
+            fill: '#ffffff',
+            align: 'center'
+        }).setOrigin(0.5);
+        
+        popupContainer.add([bg, text]);
+        
+        // Hiệu ứng nhiễu màn hình
+        const glitchPipeline = this.renderer.addPipeline('Glitch', new GlitchPipeline(this.game));
+        this.cameras.main.setPipeline('Glitch');
+
+        // Đếm ngược 10 giây
+        let timeLeft = 10;
+        const timeText = this.add.text(0, 30, `${timeLeft}s`, {
+            fontSize: '24px',
+            fill: '#ffffff'
+        }).setOrigin(0.5);
+        popupContainer.add(timeText);
+
+        // Timer đếm ngược
+        const timer = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                timeLeft--;
+                timeText.setText(`${timeLeft}s`);
+                if (timeLeft <= 0) {
+                    // Hết hiệu ứng
+                    this.cameras.main.resetPipeline();
+                    popupContainer.destroy();
+                    this.player.isStunned = false;
+                    this.player.setVelocityX(this.player.originalSpeed);
+                }
+            },
+            repeat: 9
+        });
+
+        // Animation cho popup
+        this.tweens.add({
+            targets: popupContainer,
+            scale: { from: 0, to: 1 },
+            duration: 500,
+            ease: 'Back.out'
+        });
+    }
+}
+
+// Shader cho hiệu ứng nhiễu
+class GlitchPipeline extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
+    constructor(game) {
+        super({
+            game: game,
+            renderTarget: true,
+            fragShader: `
+                precision mediump float;
+                uniform float time;
+                uniform sampler2D uMainSampler;
+                varying vec2 outTexCoord;
+
+                void main() {
+                    vec2 uv = outTexCoord;
+                    float glitchAmount = sin(time * 10.0) * 0.03;
+                    
+                    // RGB Split effect
+                    vec4 colorR = texture2D(uMainSampler, vec2(uv.x + glitchAmount, uv.y));
+                    vec4 colorG = texture2D(uMainSampler, uv);
+                    vec4 colorB = texture2D(uMainSampler, vec2(uv.x - glitchAmount, uv.y));
+                    
+                    gl_FragColor = vec4(colorR.r, colorG.g, colorB.b, 1.0);
+                }
+            `
         });
     }
 }

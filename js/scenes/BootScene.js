@@ -40,5 +40,7 @@ class BootScene extends Phaser.Scene {
 
         // Load warning sound
         this.load.audio('bossWarning', 'assets/sounds/BossVi.mp3');
+
+        this.load.image('thinh_effect', 'assets/images/thinh_effect.png');
     }
 }
